@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quillmont Sign-in Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<style>
+/* Layout: app pages (top bar + content) and Auth0 Universal Login screens (centered 400px card,
+   matching the JM Identity Auth0 template spec), then a centered prototype footer.
+   Deliberately single-theme (light) so every participant sees the same product. */
+:root {
+  color-scheme: light;
+  --ink: #1d2a26; --ink-2: #4a5853; --ink-3: #6b7873;
+  --paper: #f4f3ef; --card: #ffffff; --subtle: #f1f0ec;
+  --line: #dfdbd2; --line-strong: #b9b4a8;
+  --brand: #1f5c4f; --brand-hover: #174a3f; --brand-soft: #e3efea;
+  --protect: #8a4b2a; --protect-soft: #f6e8df;
+  --business: #2c4a7a; --business-soft: #e4eaf4;
+  --warn: #8a5a12; --warn-soft: #fbf1dd; --warn-line: #ecd6a8;
+  --danger: #c0352b; --danger-ink: #a3261f; --success: #2f6b3a; --success-soft: #e5f2e7;
+  --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --r: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.5; }
+button, input { font: inherit; }
+a { color: var(--brand); }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+
+/* ── App chrome ── */
+.top { background: var(--card); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 960px; margin: 0 auto; padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.brand svg { width: 28px; height: 28px; flex: 0 0 auto; }
+.app-tag { font-weight: 600; font-size: 13px; padding: 3px 10px; border-radius: 999px; }
+.app-tag.protect { background: var(--protect-soft); color: var(--protect); }
+.app-tag.business { background: var(--business-soft); color: var(--business); }
+.who { font-size: 14px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; min-width: 0; }
+.who b { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex: 0 0 auto; }
+main { padding-block: 32px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 10px 18px; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 16px; cursor: pointer; text-decoration: none; }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-secondary { background: var(--card); color: var(--brand); border-color: var(--line-strong); }
+.btn-secondary:hover { background: var(--brand-soft); }
+.btn-link { background: none; border: none; color: var(--brand); padding: 4px; min-height: 44px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.small { font-size: 14px; color: var(--ink-2); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 600; font-size: 14px; }
+.field .hint { font-size: 13px; color: var(--ink-3); }
+.input { width: 100%; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink); font-size: 16px; }
+.input:focus { border-color: var(--brand); outline: 3px solid var(--brand-soft); outline-offset: 0; }
+.err { color: var(--danger-ink); font-size: 14px; margin: 0; }
+.notice { display: flex; gap: 12px; padding: 14px; border-radius: 10px; background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--ink); font-size: 15px; }
+.notice svg { flex: 0 0 auto; width: 20px; height: 20px; color: var(--warn); margin-top: 2px; }
+.notice strong { display: block; }
+.notice .btn-link { min-height: 0; padding: 0; }
+.invite-card { max-width: 600px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+@media (max-width: 520px) { .invite-card { padding: 24px 20px; } }
+.invite-card h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1.2; }
+.invite-card .lede { margin: 8px 0 0; color: var(--ink-2); }
+.invite-form { display: flex; flex-direction: column; gap: 20px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 16px; }
+@media (max-width: 520px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.grid2 .span2 { grid-column: 1 / -1; }
+.field .optional { font-weight: 400; color: var(--ink-3); }
+.input[readonly] { background: var(--subtle); color: var(--ink-2); }
+.field.is-invalid .input, .field.is-invalid .phone-group { border-color: var(--danger); }
+.phone-group { display: flex; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); overflow: hidden; }
+.phone-group:focus-within { border-color: var(--brand); outline: 3px solid var(--brand-soft); }
+.phone-group select { border: 0; border-right: 1px solid var(--line); background: var(--subtle); color: var(--ink); padding: 0 10px 0 12px; font-size: 16px; cursor: pointer; }
+.phone-group .input { border: 0; border-radius: 0; outline: none; }
+.phone-group .input:focus { outline: none; }
+.checks { display: flex; flex-direction: column; gap: 16px; }
+.check { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 1px 0 0; flex: 0 0 auto; accent-color: var(--brand); }
+.check.is-invalid { color: var(--danger-ink); }
+
+.page { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.page h1 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 30px; line-height: 1.2; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.panel h2 { margin: 0; font-size: 18px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.btn-sm { min-height: 40px; padding: 6px 14px; font-size: 14px; }
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 14px; border-top: 1px solid var(--line); }
+.rows .row:first-child { border-top: 0; padding-top: 4px; }
+.rows .row:last-child { padding-bottom: 0; }
+.row .k { color: var(--ink-2); font-size: 14px; }
+.row .v { font-weight: 600; overflow-wrap: anywhere; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.tile span { font-size: 14px; color: var(--ink-2); }
+.empty { text-align: center; padding: 28px 16px; }
+.empty svg { width: 44px; height: 44px; color: var(--ink-3); }
+.hero { display: grid; gap: 24px; max-width: 880px; margin: 0 auto; align-items: center; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .hero { grid-template-columns: 1.1fr .9fr; } }
+.hero h1 { font-family: var(--display); font-weight: 600; font-size: clamp(32px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+.hero p { margin: 0; color: var(--ink-2); font-size: 18px; max-width: 46ch; }
+.hero .art { border-radius: 16px; aspect-ratio: 4 / 3; max-width: 100%; display: flex; align-items: center; justify-content: center; }
+.hero .art.protect { background: var(--protect-soft); color: var(--protect); }
+.hero .art.business { background: var(--business-soft); color: var(--business); }
+.hero .art svg { width: 45%; height: auto; }
+.hero .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.inbox { max-width: 640px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.inbox-head { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink-2); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.mail { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.mail .from { font-size: 14px; color: var(--ink-2); }
+.mail h2 { margin: 0; font-size: 20px; }
+
+/* ── Auth0 Universal Login (per the JM Identity Auth0 template spec) ── */
+.a0-page { display: flex; flex-direction: column; align-items: center; padding-block: 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.a0-card { width: 100%; max-width: 400px; padding: 32px 24px; background: var(--card); border-radius: 12px; box-shadow: 0 12px 40px rgba(29,42,38,.12), 0 2px 6px rgba(29,42,38,.06); }
+.a0-logo { display: flex; justify-content: center; margin: 0 0 24px; }
+.a0-logo svg { display: block; height: 56px; width: 168px; }
+.a0-title { font-family: var(--font); font-size: 24px; font-weight: 400; line-height: 1.25; margin: 0 0 24px; text-align: center; color: var(--ink); }
+.a0-desc { font-size: 14px; line-height: 1.5; color: var(--ink-2); margin: 0 0 24px; text-align: center; }
+.a0-desc strong { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.a0-form { display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.a0-actions { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+.a0-field { position: relative; }
+.a0-input { width: 100%; height: 52px; padding: 18px 16px 6px; font-family: var(--font); font-size: 16px; color: var(--ink); background: var(--card); border: 1px solid var(--line-strong); border-radius: 8px; outline: none; -webkit-appearance: none; }
+.a0-input:hover { border-color: var(--ink-3); }
+.a0-input:focus { border-color: var(--brand); outline: 2px solid var(--brand); outline-offset: 0; }
+.a0-field.has-trailing .a0-input { padding-right: 64px; }
+.a0-label { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--ink-3); pointer-events: none; transition: top .15s, font-size .15s, transform .15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 32px); }
+.a0-input:focus + .a0-label, .a0-input:not(:placeholder-shown) + .a0-label { top: 7px; transform: none; font-size: 12px; }
+.a0-input:focus + .a0-label { color: var(--brand); }
+.a0-input[readonly] { background: var(--subtle); border-color: var(--line); padding-top: 6px; }
+.a0-trailing { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-width: 36px; height: 36px; padding: 0 8px; background: none; border: 0; border-radius: 8px; color: var(--brand); cursor: pointer; font-size: 14px; font-weight: 700; }
+.a0-field.is-invalid .a0-input { border-color: var(--danger); }
+.a0-field.is-invalid .a0-label { color: var(--danger-ink); }
+.a0-error { margin: -8px 0 0; font-size: 12px; color: var(--danger-ink); }
+.a0-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 52px; padding: 0 16px; font-family: var(--font); font-size: 16px; font-weight: 400; border-radius: 8px; cursor: pointer; text-decoration: none; }
+.a0-btn-primary { background: var(--brand); color: #fff; border: 1px solid var(--brand); }
+.a0-btn-primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+.a0-btn-outline { background: var(--card); color: var(--brand); border: 1px solid var(--brand); }
+.a0-btn-outline:hover { background: var(--brand-soft); }
+.a0-link { background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--font); font-size: 14px; font-weight: 700; color: var(--brand); text-decoration: none; }
+.a0-link:hover { text-decoration: underline; }
+.a0-meta { margin: 0; font-size: 14px; color: var(--ink-2); text-align: center; }
+.a0-meta-sm { margin: 0; font-size: 12px; color: var(--ink-2); text-align: center; }
+.a0-meta-sm .a0-link { font-size: 12px; }
+.a0-alt { text-align: center; margin: 24px 0 0; }
+.a0-forgot { margin: 0; text-align: left; }
+.a0-alert { margin: 0 0 12px; padding: 12px; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+.a0-alert-danger { background: var(--danger); color: #fff; }
+.a0-alert-success { background: var(--success-soft); color: var(--success); }
+.a0-policy { margin: 0; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: 8px; font-size: 14px; color: var(--ink-2); }
+.a0-policy p { margin: 0 0 8px; }
+.a0-policy ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.a0-policy ul ul { margin-top: 8px; padding-left: 24px; }
+.a0-policy li > span { display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
+.a0-policy .dot { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: transparent; }
+.a0-policy li.is-met > span { color: var(--success); }
+.a0-policy li.is-met > span .dot { border-color: var(--success); background: var(--success); color: #fff; }
+.a0-policy.is-invalid { border-color: var(--danger); }
+.a0-policy.is-invalid li:not(.is-met) > span { color: var(--danger-ink); }
+.a0-value { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 12px 8px 12px 16px; background: var(--subtle); border: 1px solid var(--line); border-radius: 8px; font-size: 16px; }
+.a0-value-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.a0-result { text-align: center; }
+.a0-result-icon { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; }
+.a0-result-icon svg { width: 32px; height: 32px; }
+.a0-otp { letter-spacing: .3em; }
+.a0-options { display: flex; flex-direction: column; gap: 12px; }
+.a0-option { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 8px; cursor: pointer; text-align: left; font-family: var(--font); font-size: 16px; line-height: 1.35; color: var(--ink); }
+.a0-option:hover { border-color: var(--brand); background: var(--brand-soft); }
+.a0-option .ic { width: 40px; height: 40px; border-radius: 8px; background: var(--brand-soft); color: var(--brand); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.a0-option .ic svg { width: 20px; height: 20px; }
+.a0-option .lbl { flex: 1; min-width: 0; }
+.a0-option .chev { width: 18px; height: 18px; color: var(--ink-3); flex: 0 0 auto; }
+.a0-qr { display: flex; justify-content: center; margin: 0 0 16px; }
+.a0-qr svg { width: 176px; height: 176px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.a0-secret { text-align: center; font-size: 13px; color: var(--ink-2); margin: 0 0 20px; }
+.a0-secret code { display: block; margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); letter-spacing: .08em; font-size: 14px; }
+.a0-wait { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--ink-2); min-height: 52px; }
+.a0-spin { width: 18px; height: 18px; border: 2px solid var(--line-strong); border-top-color: var(--brand); border-radius: 50%; animation: a0spin .8s linear infinite; }
+@keyframes a0spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .a0-spin { animation: none; } }
+
+/* ── Mobile task: phone-sized frame on wide screens, full screen on a real phone ── */
+.device-wrap { padding: 24px 16px; }
+.device { position: relative; background: var(--paper); }
+@media (min-width: 600px) { .device { width: 390px; height: 780px; margin: 0 auto; border: 10px solid var(--ink); border-radius: 44px; overflow: auto; } }
+.device .hero { grid-template-columns: minmax(0, 1fr); }
+.device .hero h1 { font-size: 30px; }
+.device .a0-card { box-shadow: none; padding-inline: 16px; }
+.device .a0-page { padding-block: 16px; }
+.banner { position: sticky; top: 8px; z-index: 5; margin: 8px; background: rgba(255,255,255,.97); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(29,42,38,.18); border-radius: 16px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; width: calc(100% - 16px); text-align: left; cursor: pointer; font: inherit; color: var(--ink); }
+.banner .ico { width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+.banner .ico.msg { background: #2f8f4e; }
+.banner .ico.mail { background: #2c6bd1; }
+.banner .meta { font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; }
+.banner .txt { font-size: 14px; }
+.suggest { display: flex; justify-content: center; }
+.suggest button { border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: 8px 16px; min-height: 44px; font-size: 15px; cursor: pointer; color: var(--ink); }
+.suggest small { display: block; font-size: 12px; color: var(--ink-3); }
+.mailapp { display: flex; flex-direction: column; gap: 14px; }
+.mailapp .back { align-self: flex-start; }
+.mailapp .code { font-size: 34px; font-weight: 700; letter-spacing: .2em; text-align: center; padding: 16px; background: var(--paper); border-radius: 12px; }
+
+/* ── Closing comparison + researcher index ── */
+.compare { max-width: 900px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.compare .a0-card { max-width: none; }
+.opt { font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); text-align: center; margin-bottom: 8px; }
+.index { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.index h1 { font-family: var(--display); font-weight: 600; font-size: 30px; margin: 0; }
+.index table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; font-size: 14px; }
+.index th, .index td { text-align: left; padding: 12px 16px; border-top: 1px solid var(--line); vertical-align: top; }
+.index th { background: var(--paper); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); border-top: 0; }
+.index .scroll { overflow-x: auto; }
+.index .task-note { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; max-width: 62ch; }
+.index td { padding-block: 16px; }
+.index td:last-child { white-space: nowrap; }
+.index code { font-size: 13px; background: var(--paper); padding: 1px 6px; border-radius: 6px; }
+
+.brief { background: #fff7e0; border-bottom: 1px solid #ecd6a8; color: var(--ink); }
+.brief-in { max-width: 960px; margin: 0 auto; padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; font-size: 14px; }
+.brief-cols { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 48px; min-width: 0; }
+.brief-cols dl { align-content: start; }
+.brief dl .pair { display: contents; }
+@media (max-width: 480px) { .brief-cols dl:last-child { display: flex; flex-wrap: wrap; gap: 0 24px; } .brief-cols dl:last-child .pair { display: block; } }
+.brief-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.brief-head b { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--warn); }
+.brief-toggle { flex: 0 0 auto; white-space: nowrap; background: none; border: 0; color: var(--warn); font-weight: 600; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; padding: 0 4px; }
+.brief p { margin: 0; max-width: 72ch; }
+.brief .task-line { font-weight: 600; }
+.brief dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; }
+.brief dt { color: var(--ink-2); }
+@media (max-width: 480px) { .brief dl { grid-template-columns: minmax(0, 1fr); gap: 0; } .brief dd { margin-bottom: 4px; } }
+.brief dl { align-items: center; }
+.brief dd { display: flex; align-items: center; gap: 4px; }
+.copy-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 32px; height: 32px; padding: 0 6px; border: 0; border-radius: 6px; background: none; color: var(--warn); cursor: pointer; font-size: 12px; font-weight: 600; }
+.copy-btn:hover { background: rgba(138,90,18,.1); }
+.copy-btn svg { width: 16px; height: 16px; }
+.row .k small { display: block; font-size: 13px; color: var(--ink-3); }
+.brief dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.brief dd span { user-select: all; min-width: 0; }
+.proto-foot { border-top: 1px dashed var(--line-strong); padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; font-size: 13px; color: var(--ink-3); }
+.proto-foot .foot-btn { background: none; border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 12px; color: var(--ink-2); cursor: pointer; font-size: 13px; min-height: 36px; }
+.proto-foot .foot-link { background: none; border: none; padding: 4px; color: var(--ink-3); text-decoration: underline; text-underline-offset: 3px; font-size: 13px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="app" aria-live="polite"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="shield" viewBox="0 0 32 32"><path d="M16 1.5 3.5 6v8.6c0 7.6 5.2 13.2 12.5 15.9 7.3-2.7 12.5-8.3 12.5-15.9V6z" fill="#1f5c4f"/><path d="M16 5.2 7 8.5v6.2c0 5.4 3.6 9.6 9 11.8 5.4-2.2 9-6.4 9-11.8V8.5z" fill="none" stroke="#c9a961" stroke-width="1.2"/><path d="M19.8 9.6c-3.9.4-7 3.4-7.6 7.7l-.7 4.6 1.6-1.9c3.6-.6 6.3-3.5 6.7-7.3l.2-1.8-1.7 1.3 1.5-2.6z" fill="#fff"/></symbol>
+  <symbol id="wordmark" viewBox="0 0 168 56"><use href="#shield" x="0" y="8" width="40" height="40"/><text x="48" y="36" font-family="Figtree, system-ui, sans-serif" font-size="22" font-weight="700" fill="#1d2a26" letter-spacing="-.3">Quillmont</text></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V6a2 2 0 0 1 2-2h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="l-message" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g></symbol>
+  <symbol id="l-smartphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></g></symbol>
+  <symbol id="l-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></g></symbol>
+  <symbol id="l-chevron" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></g></symbol>
+  <symbol id="l-shield-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2 19h20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z M3 7.5 12 12l9-4.5 M12 12v9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 10v10h16V10M3 10l2-6h14l2 6zM9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+</svg>
+
+<script>
+(function () {
+  // ── Scenario data ────────────────────────────────────────────────
+  var JORDAN_PHONE = '5555550123', SAM_PHONE = '5555550123';
+  var WORK = 'jane@mapleandmaingoods.com', SAM_PERSONAL = 'jane.smith@gmail.com';
+  var SCENARIOS = {
+    'consumer-1': { label: 'Consumer · Task 1 · Sign up (baseline)', app: 'protect', start: 'landing', accounts: [] },
+    'consumer-2': { label: 'Consumer · Task 2 · Shared household phone', app: 'protect', start: 'landing',
+      accounts: [{ phone: JORDAN_PHONE, email: 'alex.smith@gmail.com', mine: false }] },
+    'consumer-3': { label: 'Consumer · Task 3 · Old account, phone added later', app: 'protect', start: 'landing',
+      accounts: [{ phone: JORDAN_PHONE, email: 'jsmith84@yahoo.com', mine: true }] },
+    'consumer-4': { label: 'Consumer · Task 4 · Sign up on your phone', app: 'protect', start: 'landing', mobile: true, accounts: [] },
+    'business-a-1': { label: 'Business A · Task 1 · Insure your laptop', app: 'protect', start: 'landing', accounts: [] },
+    'business-a-2': { label: 'Business A · Task 2 · Sign up for Quillmont Business', app: 'business', start: 'landing',
+      accounts: [{ phone: SAM_PHONE, email: SAM_PERSONAL, mine: true }] },
+    'business-a-3': { label: 'Business A · Task 3 · Accept an invite', app: 'business', start: 'invite',
+      accounts: [{ phone: SAM_PHONE, email: SAM_PERSONAL, mine: true }] },
+    'business-b-1': { label: 'Business B · Task 1 · Sign up for Quillmont Business', app: 'business', start: 'landing', accounts: [] },
+    'business-b-2': { label: 'Business B · Task 2 · Insure your laptop', app: 'protect', start: 'landing',
+      accounts: [{ phone: SAM_PHONE, email: WORK, mine: true, org: true }] },
+    'business-b-3': { label: 'Business B · Task 3 · Sign in later', app: 'business', start: 'landing',
+      accounts: [{ phone: SAM_PHONE, email: SAM_PERSONAL, mine: true }, { phone: null, email: WORK, mine: true, org: true }] },
+    'compare': { label: 'Closing · Compare sign-up screens', app: null, start: 'compare', accounts: [] }
+  };
+  var APPS = {
+    protect: { name: 'Quillmont Protect', tag: 'Protect', headline: 'Protect the things you use every day.', blurb: 'Cover your laptop, phone, bike or camera against damage and theft, from about $6 a month.', icon: 'i-laptop' },
+    business: { name: 'Quillmont Business', tag: 'Business', headline: 'Shipping and team tools for small businesses.', blurb: 'Buy discounted shipping labels, manage orders and give your team their own logins.', icon: 'i-box' }
+  };
+  var CODE_ROW = ['Any passcode', '123123'];
+  var JORDAN = [['Cell phone', '(555) 555-0123'], ['Email', 'john.smith@gmail.com'], ['Password', 'BlueHarbor-2026!'], CODE_ROW];
+  var SAM = [['Cell phone (only phone)', '(555) 555-0123'], ['Personal email', 'jane.smith@gmail.com'], ['Work email', 'jane@mapleandmaingoods.com'], ['Password', 'BlueHarbor-2026!'], CODE_ROW];
+  var SAM_LOGIN = SAM.slice(0, 4);
+  var BRIEFS = {
+    'consumer-1': { story: 'You’re John. You just bought a new laptop and want to protect it.', task: 'Create an account so you can protect your laptop. Stop when you reach the home screen.', details: JORDAN },
+    'consumer-2': { story: 'You’re John. You live with your partner, Alex, and you both use the same household phone number. Last year Alex covered her phone with Quillmont Protect. Now you want to cover your own laptop.', task: 'Create your own account to cover your laptop. Then add your cell phone to your account so the app can text you.', details: [['Shared phone', '(555) 555-0123'], ['Your email', 'john.smith@gmail.com'], ['Password', 'BlueHarbor-2026!'], CODE_ROW] },
+    'consumer-3': { story: 'You’re John. A few years ago you made a Quillmont account for an old policy using your cell phone, and you’ve forgotten about it. Today you’re signing up for Quillmont Protect.', task: 'Sign up with your email. Then add your cell phone to your account so the app can text you.', details: JORDAN },
+    'consumer-4': { story: 'You’re John, setting up Quillmont Protect on your phone for the first time.', task: 'Create an account and confirm it. Stop when you reach the home screen.', details: JORDAN },
+    'business-a-1': { story: 'You’re Jane. You work at Maple & Main Goods, a small shop.', task: 'You want to protect your personal laptop. Create an account in Quillmont Protect. Stop when you reach the home screen.', details: SAM },
+    'business-a-2': { story: 'You’re Jane. You work at Maple & Main Goods, a small shop.', task: 'Your manager asks you to create a Quillmont Business account so you can buy shipping labels for the shop. Create your account. Then add your cell phone to your account so the app can text you.', details: SAM },
+    'business-a-3': { story: 'You’re Jane. Priya, the shop’s owner, invited you to Maple & Main Goods’ Quillmont Business account. The invite went to your work email.', task: 'Open the invite email and join your shop’s Quillmont Business account.', details: SAM.slice(0, 3).concat([['Name', 'Jane Smith']], SAM.slice(3)) },
+    'business-b-1': { story: 'You’re Jane. You work at Maple & Main Goods, a small shop.', task: 'Your manager asks you to create a Quillmont Business account so you can buy shipping labels for the shop. Create your account. Stop when you reach the home screen.', details: SAM },
+    'business-b-2': { story: 'You’re Jane. You work at Maple & Main Goods, a small shop.', task: 'You want to protect your personal laptop. Create an account in Quillmont Protect. Then add your cell phone to your account so the app can text you.', details: SAM },
+    'business-b-3': { story: 'You’re Jane. Last month Priya invited you to Quillmont Business at your work email, and you joined. You also have a Quillmont Protect account from before, set up with your cell phone. Today you want to buy shipping labels.', task: 'Sign in to Quillmont Business.', details: SAM_LOGIN }
+  };
+  var INDEX_NOTES = {
+    'consumer-1': 'Sign up for Protect and reach the home screen. No existing accounts, so nothing goes wrong. Shows which identifier people pick first.',
+    'consumer-2': 'Sign up for Protect, then add a cell phone. The partner already used the shared phone, so it’s taken either at sign-up or when adding it later.',
+    'consumer-3': 'Sign up with email, then add a cell phone. A forgotten old account already has the phone, so adding it says it’s taken.',
+    'consumer-4': 'Sign up for Protect on a phone and confirm with a text or email code. Compares the two ways of confirming.',
+    'business-a-1': 'Sign up for Protect as a personal customer and reach the home screen. Sets up the personal account the next tasks run into.',
+    'business-a-2': 'Sign up for Business for work, then add a cell phone. The phone is already on the personal account from task 1.',
+    'business-a-3': 'Accept an invite sent to the work email. The app’s details screen asks for name and mobile number, and the phone is already on the personal account, so it flags the existing account there.',
+    'business-b-1': 'Sign up for Business with the work email and reach the home screen. Sets up the work account the next tasks run into.',
+    'business-b-2': 'Sign up for Protect as a personal customer, then add a cell phone. The phone is already on the work account from task 1.',
+    'business-b-3': 'Sign in to Business. Signing in with the phone opens the personal account, which has no business. The work email opens the shop.',
+    'compare': 'Closing question for all three tests. Shows the combined sign-up field beside an email-only one.'
+  };
+  var briefOpen = true;
+  function brief() {
+    var b = BRIEFS[S.key]; if (!b) return '';
+    function dl(rows) { return '<dl>' + rows.map(function (d) { return '<div class="pair"><dt>' + esc(d[0]) + '</dt><dd><span>' + esc(d[1]) + '</span><button type="button" class="copy-btn" data-act="copy" data-val="' + esc(d[1]) + '" aria-label="Copy ' + esc(d[0].toLowerCase()) + '"><svg aria-hidden="true"><use href="#i-copy"/></svg></button></dd></div>'; }).join('') + '</dl>'; }
+    var secret = function (d) { return d[0] === 'Name' || d[0] === 'Password' || d[0] === 'Any passcode'; };
+    var toggle = '<button type="button" class="brief-toggle" data-act="brief" aria-expanded="' + briefOpen + '">' + (briefOpen ? 'Hide' : 'Show your details') + '</button>';
+    var body = briefOpen ? '<div class="brief-cols">' + dl(b.details.filter(function (d) { return !secret(d); })) + dl(b.details.filter(secret)) + '</div>' : '<span></span>';
+    return '<aside class="brief" aria-label="Your details"><div class="brief-in">' + body + toggle + '</div></aside>';
+  }
+  var CODE = '123123', CODES = { sms: CODE, email: CODE };
+  // The MFA method the participant chose in their most recent sign-up, kept across tasks so later
+  // log-ins (including into accounts that existed before the task) challenge with that method.
+  var LAST_MFA = null;
+  try { LAST_MFA = JSON.parse(localStorage.getItem('quillmont-last-mfa') || 'null'); } catch (err) {}
+  function saveLastMfa(m) { LAST_MFA = m; try { localStorage.setItem('quillmont-last-mfa', JSON.stringify(m)); } catch (err) {} }
+  function mfaFor(acct) {
+    var m = acct.mfa || LAST_MFA || { method: 'sms' };
+    var phone = m.phone || acct.phone;
+    if (m.method === 'sms' && !phone) return { method: 'otp' };
+    return { method: m.method, phone: phone };
+  }
+  var RULES = [['length', 'At least 16 characters in length'], ['three', 'At least 3 of the following:'], ['lower', 'Lower case letters (a-z)'], ['upper', 'Upper case letters (A-Z)'], ['number', 'Numbers (0-9)'], ['special', 'Special characters (ex. !@#)'], ['repeat', 'No more than 2 identical characters in a row']];
+
+  // ── State ────────────────────────────────────────────────────────
+  var S, bannerTimer;
+  var fromIndex = !SCENARIOS[(location.hash || '').slice(1)];
+  function reset(key) {
+    clearTimeout(bannerTimer);
+    var sc = SCENARIOS[key] || null;
+    S = { key: sc ? key : null, sc: sc || {}, app: sc && sc.app, screen: sc ? sc.start : 'index',
+          accounts: sc ? sc.accounts.map(function (a) { return Object.assign({}, a); }) : [],
+          ident: '', idType: '', match: null, pending: {}, current: null, alert: '', fieldErr: '', policyBad: false,
+          banner: false, otpChannel: '', codeValue: '', codeFilled: false, invite: false, settingsMsg: '', loginIdent: '' };
+    render();
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  var app = document.getElementById('app');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function digits(s) { var d = String(s).replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d; }
+  function kind(v) { v = String(v).trim(); if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'email'; if (digits(v).length === 10 && /^[\d\s().+-]+$/.test(v)) return 'phone'; return ''; }
+  function fmtPhone(d) { return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6); }
+  function shown(v) { return kind(v) === 'phone' ? fmtPhone(digits(v)) : String(v).trim(); }
+  function find(type, v) { var n = type === 'phone' ? digits(v) : String(v).trim().toLowerCase(); return S.accounts.filter(function (a) { return type === 'phone' ? a.phone === n : (a.email || '').toLowerCase() === n; })[0] || null; }
+  function loginOf(a) { return a.email || (a.phone ? fmtPhone(a.phone) : ''); }
+  function appName() { return APPS[S.app].name; }
+  function go(screen) { S.screen = screen; S.alert = ''; S.fieldErr = ''; S.policyBad = false; render(); }
+  function rules(pw) {
+    var kinds = [/[a-z]/.test(pw), /[A-Z]/.test(pw), /\d/.test(pw), /[^A-Za-z0-9]/.test(pw)];
+    return { length: pw.length >= 16, lower: kinds[0], upper: kinds[1], number: kinds[2], special: kinds[3], three: kinds.filter(Boolean).length >= 3, repeat: pw.length > 0 && !/(.)\1\1/.test(pw) };
+  }
+  function pwOk(pw) { var r = rules(pw); return r.length && r.three && r.repeat; }
+
+  // Auth0 building blocks
+  function card(inner, extra) { return '<div class="a0-page"><section class="a0-card' + (extra || '') + '"><div class="a0-logo"><svg role="img" aria-label="Quillmont"><use href="#wordmark"/></svg></div>' + inner + '</section></div>'; }
+  function alertHtml() { return S.alert ? '<div class="a0-alert a0-alert-danger" role="alert">' + S.alert + '</div>' : ''; }
+  function field(id, label, opts) {
+    opts = opts || {};
+    var bad = S.fieldErr && opts.err !== false;
+    return '<div class="a0-field' + (bad ? ' is-invalid' : '') + (opts.trailing ? ' has-trailing' : '') + '"><input class="a0-input' + (opts.cls ? ' ' + opts.cls : '') + '" id="' + id + '" placeholder=" " ' + (opts.attrs || '') + ' value="' + esc(opts.value || '') + '"' + (opts.readonly ? ' readonly aria-label="' + esc(label) + '"' : '') + (bad ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : '') + '>' +
+      (opts.readonly ? '' : '<label class="a0-label" for="' + id + '">' + label + '</label>') + (opts.trailing || '') + '</div>' + (bad ? '<p class="a0-error" id="' + id + '-err">' + esc(S.fieldErr) + '</p>' : '');
+  }
+  function readonlyIdent(value, backTo) { return field('ro', 'Account', { readonly: true, value: value, err: false, trailing: backTo ? '<button class="a0-trailing" type="button" data-act="' + backTo + '">Edit</button>' : '' }); }
+  function pwField(id, label) { return field(id, label, { attrs: 'type="password" autocomplete="' + (id === 'loginpw' ? 'current-password' : 'new-password') + '"', trailing: '<button class="a0-trailing" type="button" data-act="toggle-pw" data-for="' + id + '" aria-label="Show password" aria-pressed="false">Show</button>' }); }
+  function policyHtml(pw) {
+    var r = rules(pw || '');
+    function li(k, label, inner) { return '<li class="' + (r[k] ? 'is-met' : '') + '" data-rule="' + k + '"><span><span class="dot" aria-hidden="true">✓</span>' + label + '</span>' + (inner || '') + '</li>'; }
+    return '<div class="a0-policy' + (S.policyBad ? ' is-invalid' : '') + '" id="policy" aria-live="polite"><p>Your password must contain:</p><ul>' + li('length', RULES[0][1]) +
+      li('three', RULES[1][1], '<ul>' + li('lower', RULES[2][1]) + li('upper', RULES[3][1]) + li('number', RULES[4][1]) + li('special', RULES[5][1]) + '</ul>') + li('repeat', RULES[6][1]) + '</ul></div>';
+  }
+
+  function topbar() {
+    var a = APPS[S.app];
+    var who = S.current ? '<div class="who"><span class="avatar" aria-hidden="true">' + esc(S.current.email ? S.current.email[0].toUpperCase() : '#') + '</span><span>Signed in as <b>' + esc(loginOf(S.current)) + '</b></span></div>' : '';
+    return '<header class="top"><div class="top-in"><div class="brand"><svg aria-hidden="true"><use href="#shield"/></svg>Quillmont' + (a ? ' <span class="app-tag ' + S.app + '">' + a.tag + '</span>' : '') + '</div>' + who + '</div></header>';
+  }
+  function foot() {
+    if (!S.key) return '';
+    return '<footer class="proto-foot"><span>Prototype for a research study</span>' +
+      (S.key !== 'compare' ? '<button type="button" class="foot-btn" data-act="restart">Start this task over</button>' : '') +
+      (fromIndex ? '<button type="button" class="foot-link" data-act="index">All tasks</button>' : '') + '</footer>';
+  }
+  var AUTH = { mfaChallenge: 1, signup: 1, signupPw: 1, verify: 1, mfaOptions: 1, mfaSms: 1, mfaOtp: 1, mfaKey: 1, mfaDone: 1, login: 1, loginPw: 1, resetRequest: 1, resetEmail: 1, acceptInvite: 1, support: 1 };
+
+  // ── Screens ──────────────────────────────────────────────────────
+  var V = {};
+  V.index = function () {
+    var rows = Object.keys(SCENARIOS).map(function (k) { return '<tr><td><button type="button" class="btn-link" style="min-height:0;padding:0;text-align:left" data-act="open" data-key="' + k + '">' + esc(SCENARIOS[k].label) + '</button><p class="task-note">' + esc(INDEX_NOTES[k] || '') + '</p></td><td><code>#' + k + '</code></td></tr>'; }).join('');
+    return '<main><div class="index"><h1>Quillmont prototype: task links</h1><p class="small">For the researcher. Give each UserTesting task the page link plus its code, for example <code>…/quillmont-prototype.html#consumer-2</code>. Each link starts that task fresh with the right existing accounts. Personas use the password <code>BlueHarbor-2026!</code>, and any password works for their own existing accounts. Every sign-up verifies the phone or email, then requires MFA setup. Every log-in asks for MFA after the password, using the method the participant chose in their most recent sign-up (a text code if they haven’t signed up yet). Every code is <code>123123</code>.</p><div class="scroll"><table><thead><tr><th>Task</th><th>Link code</th></tr></thead><tbody>' + rows + '</tbody></table></div></div></main>';
+  };
+  V.landing = function () {
+    var a = APPS[S.app];
+    return '<main><section class="hero"><div class="stack" style="gap:18px"><h1>' + a.headline + '</h1><p>' + a.blurb + '</p><div class="cta"><button class="btn btn-primary" data-act="to-signup">Get started</button><button class="btn btn-secondary" data-act="to-login">Log in</button></div></div>' +
+      '<div class="art ' + S.app + '" aria-hidden="true"><svg><use href="#' + a.icon + '"/></svg></div></section></main>';
+  };
+  // signup-id (combined field kept on purpose; Auth0 renders one field per identifier)
+  V.signup = function () {
+    return card('<h1 class="a0-title">' + appName() + '</h1><p class="a0-desc">Sign up to Quillmont to continue to ' + appName() + '.</p>' + alertHtml() +
+      '<form class="a0-form" data-form="signup" novalidate>' + field('ident', 'Phone or email*', { attrs: 'type="text" autocomplete="username"', value: S.ident }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button><p class="a0-meta">Already have an account? <button class="a0-link" type="button" data-act="to-login">Log in</button></p></div></form>');
+  };
+  // signup-password
+  V.signupPw = function () {
+    var ident = S.invite ? WORK : shown(S.ident);
+    return card('<h1 class="a0-title">' + appName() + '</h1><p class="a0-desc">Set your password for Quillmont to continue to ' + appName() + '.</p>' +
+      '<form class="a0-form" data-form="signupPw" novalidate>' + readonlyIdent(ident, S.invite ? '' : 'to-signup') + pwField('pw', 'Password*') + pwField('pw2', 'Re-enter your password*') +
+      policyHtml(S.pwDraft) + '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button>' + (S.invite ? '' : '<p class="a0-meta">Already have an account? <button class="a0-link" type="button" data-act="to-login">Log in</button></p>') + '</div></form>');
+  };
+  // Verify the sign-up identifier (phone-/email-identifier-challenge) or the MFA text code.
+  // Codes are typed on desktop; on the phone task a notification appears and a "From Messages" chip fills a text code.
+  V.verify = function () {
+    var mfa = S.verifyPurpose === 'mfa', sms = mfa || S.otpChannel === 'sms';
+    var to = sms ? fmtPhone(mfa ? S.mfaPhone : S.pending.phone) : S.pending.email;
+    var suggest = sms && S.banner && !S.codeFilled ? '<div class="suggest"><button type="button" data-act="fill-code">' + CODE + '<small>From Messages</small></button></div>' : '';
+    var title = mfa ? 'Verify your identity' : (sms ? 'Verify your phone' : 'Verify your email');
+    var desc = mfa ? 'We’ve sent a text message to: ' : (sms ? 'We’ve sent a text message with your code to ' : 'We’ve sent an email with your code to ');
+    return card('<h1 class="a0-title">' + title + '</h1><p class="a0-desc">' + desc + '<strong style="white-space:nowrap">' + esc(to) + '</strong></p>' +
+      '<form class="a0-form" data-form="verify" novalidate>' + field('code', mfa ? 'Enter the 6-digit code*' : 'Enter the code*', { attrs: 'type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"', cls: 'a0-otp', value: S.codeValue }) + suggest +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button><p class="a0-meta-sm">Didn’t receive ' + (sms ? 'a code' : 'an email') + '? <button class="a0-link" type="button" data-act="noop">Resend</button></p></div></form>' +
+      (mfa ? '<p class="a0-alt"><button class="a0-link" type="button" data-act="mfa-options">Try another method</button></p>' : ''));
+  };
+  // MFA enrollment (required): mfa-enroll-options, then the chosen method.
+  V.mfaOptions = function () {
+    function opt(m, icon, label) { return '<button type="button" class="a0-option" data-act="mfa-pick" data-m="' + m + '"><span class="ic" aria-hidden="true"><svg><use href="#' + icon + '"/></svg></span><span class="lbl">' + label + '</span><svg class="chev" aria-hidden="true"><use href="#l-chevron"/></svg></button>'; }
+    return card('<h1 class="a0-title">Keep your account safe</h1><p class="a0-desc">Add a second way to confirm it’s you when you log in. Choose one to continue.</p>' +
+      '<div class="a0-options">' + opt('sms', 'l-message', 'Text you a code') + opt('otp', 'l-smartphone', 'Google Authenticator or other authenticator apps') + opt('key', 'l-key', 'Security Key') + '</div>');
+  };
+  V.mfaSms = function () {
+    return card('<h1 class="a0-title">Secure your account</h1><p class="a0-desc">Enter the phone number we should text a 6-digit code to.</p>' +
+      '<form class="a0-form" data-form="mfaSms" novalidate>' + field('mfaphone', 'Phone number*', { attrs: 'type="tel" autocomplete="tel" inputmode="tel"', value: S.mfaPhoneDraft || '' }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button></div></form><p class="a0-alt"><button class="a0-link" type="button" data-act="mfa-options">Try another method</button></p>');
+  };
+  function qrSvg() {
+    var n = 25, cells = '', seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function finder(x, y) { return '<rect x="' + x + '" y="' + y + '" width="7" height="7" fill="#1d2a26"/><rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="5" height="5" fill="#fff"/><rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="3" height="3" fill="#1d2a26"/>'; }
+    for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) {
+      var inFinder = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+      if (!inFinder && rnd() > .52) cells += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>';
+    }
+    return '<svg viewBox="0 0 ' + n + ' ' + n + '" role="img" aria-label="QR code for your authenticator app" shape-rendering="crispEdges"><g fill="#1d2a26">' + cells + '</g>' + finder(0, 0) + finder(n - 7, 0) + finder(0, n - 7) + '</svg>';
+  }
+  V.mfaOtp = function () {
+    return card('<h1 class="a0-title">Secure your account</h1><p class="a0-desc">Scan the QR code below with Google Authenticator or another authenticator app, then enter the one-time code it shows.</p>' +
+      '<div class="a0-qr">' + qrSvg() + '</div><p class="a0-secret">Can’t scan it? Enter this key in your app instead:<code>JBSW Y3DP EHPK 3PXP</code></p>' +
+      '<form class="a0-form" data-form="mfaOtp" novalidate>' + field('otpcode', 'Enter your one-time code*', { attrs: 'type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"', cls: 'a0-otp', value: S.codeValue }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button></div></form><p class="a0-alt"><button class="a0-link" type="button" data-act="mfa-options">Try another method</button></p>');
+  };
+  V.mfaKey = function () {
+    return card('<h1 class="a0-title">Add your security key</h1><p class="a0-desc">Make sure your security key is nearby. When you continue, you’ll be asked to insert it or hold it near your device, then touch it.</p>' +
+      '<div class="a0-actions">' + (S.keyWaiting ? '<div class="a0-wait" role="status"><span class="a0-spin" aria-hidden="true"></span>Waiting for your security key…</div>' : '<button class="a0-btn a0-btn-primary" type="button" data-act="key-go">Continue</button>') + '</div>' +
+      '<p class="a0-alt"><button class="a0-link" type="button" data-act="mfa-options">Try another method</button></p>');
+  };
+  // Log-in MFA challenge (mfa-sms-challenge / mfa-otp-challenge / mfa-webauthn-roaming-challenge)
+  V.mfaChallenge = function () {
+    var c = S.challenge, alt = '<p class="a0-alt"><button class="a0-link" type="button" data-act="ch-other">Try another method</button></p>';
+    if (S.chPicking) {
+      function opt(m, icon, label) { return '<button type="button" class="a0-option" data-act="ch-pick" data-m="' + m + '"><span class="ic" aria-hidden="true"><svg><use href="#' + icon + '"/></svg></span><span class="lbl">' + label + '</span><svg class="chev" aria-hidden="true"><use href="#l-chevron"/></svg></button>'; }
+      return card('<h1 class="a0-title">Other methods</h1><p class="a0-desc">Choose another way to confirm it’s you.</p><div class="a0-options">' +
+        (c.phone ? opt('sms', 'l-message', 'Text you a code') : '') + opt('otp', 'l-smartphone', 'Google Authenticator or other authenticator apps') + opt('key', 'l-key', 'Security Key') + '</div>' +
+        '<p class="a0-alt"><button class="a0-link" type="button" data-act="ch-back">Go back</button></p>');
+    }
+    if (c.method === 'key') {
+      return card('<h1 class="a0-title">Verify your identity</h1><p class="a0-desc">Use your security key to finish logging in to ' + appName() + '.</p><div class="a0-actions">' +
+        (S.keyWaiting ? '<div class="a0-wait" role="status"><span class="a0-spin" aria-hidden="true"></span>Waiting for your security key…</div>' : '<button class="a0-btn a0-btn-primary" type="button" data-act="ch-key">Use security key</button>') + '</div>' + alt);
+    }
+    var sms = c.method === 'sms';
+    return card('<h1 class="a0-title">Verify your identity</h1><p class="a0-desc">' + (sms ? 'We’ve sent a text message to: <strong style="white-space:nowrap">' + esc(fmtPhone(c.phone)) + '</strong>' : 'Check your authenticator app for the one-time code to log in to ' + appName() + '.') + '</p>' +
+      '<form class="a0-form" data-form="mfaChallenge" novalidate>' + field('chcode', sms ? 'Enter the 6-digit code*' : 'Enter your one-time code*', { attrs: 'type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"', cls: 'a0-otp', value: S.codeValue }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button>' + (sms ? '<p class="a0-meta-sm">Didn’t receive a code? <button class="a0-link" type="button" data-act="noop">Resend</button></p>' : '') + '</div></form>' + alt);
+  };
+  V.mfaDone = function () {
+    var msg = { sms: 'When you log in, we’ll text a code to ' + fmtPhone(S.mfaPhone || '') + '.', otp: 'When you log in, you’ll enter a code from your authenticator app.', key: 'When you log in, you’ll use your security key.' }[S.mfaMethod];
+    return card('<div class="a0-result-icon" aria-hidden="true"><svg><use href="#l-shield-check"/></svg></div><h1 class="a0-title">You’re all set</h1><p class="a0-desc">' + esc(msg) + '</p>' +
+      '<button class="a0-btn a0-btn-primary" type="button" data-act="mfa-finish">Continue</button>', ' a0-result');
+  };
+  V.mail = function () {
+    return '<main><div class="mailapp"><button class="btn-link back" data-act="back-verify">‹ Quillmont</button><div class="panel"><div class="small">Inbox · ' + esc(S.pending.email) + '</div><h2>Your verification code</h2><p class="small" style="margin:0">From Quillmont · now</p><p style="margin:0">Enter this code to finish signing up for Quillmont Protect.</p><div class="code">' + CODE + '</div><p class="small" style="margin:0">This code expires in 10 minutes.</p></div></div></main>';
+  };
+  // login-id
+  V.login = function () {
+    return card('<h1 class="a0-title">' + appName() + '</h1><p class="a0-desc">Log in to Quillmont to continue to ' + appName() + '.</p>' +
+      '<form class="a0-form" data-form="login" novalidate>' + field('ident', 'Phone or email*', { attrs: 'type="text" autocomplete="username"', value: S.loginIdent }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button><p class="a0-meta">Don’t have an account? <button class="a0-link" type="button" data-act="to-signup">Sign up</button></p></div></form>');
+  };
+  // login-password
+  V.loginPw = function () {
+    return card('<h1 class="a0-title">Enter your password</h1><p class="a0-desc">Enter your password for Quillmont to continue to ' + appName() + '.</p>' + alertHtml() +
+      '<form class="a0-form" data-form="loginPw" novalidate>' + readonlyIdent(shown(S.loginIdent), 'to-login') + pwField('loginpw', 'Password*') +
+      '<p class="a0-forgot"><button class="a0-link" type="button" data-act="forgot">Forgot password?</button></p>' +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button><p class="a0-meta">Don’t have an account? <button class="a0-link" type="button" data-act="to-signup">Sign up</button></p></div></form>');
+  };
+  V.resetRequest = function () {
+    return card('<h1 class="a0-title">Forgot your password?</h1><p class="a0-desc">Enter your email address and we will send you instructions to reset your password.</p>' +
+      '<form class="a0-form" data-form="resetRequest" novalidate>' + field('resetemail', 'Email address*', { attrs: 'type="email" autocomplete="email"', value: kind(S.loginIdent) === 'email' ? S.loginIdent : '' }) +
+      '<div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button></div></form><p class="a0-alt"><button class="a0-link" type="button" data-act="to-login">Back to ' + appName() + '</button></p>');
+  };
+  V.resetEmail = function () {
+    return card('<div class="a0-result-icon" aria-hidden="true"><svg><use href="#i-mail"/></svg></div><h1 class="a0-title">Check your email</h1><p class="a0-desc">Please check the email address <strong>' + esc(S.resetEmail) + '</strong> for instructions to reset your password.</p>' +
+      (S.resent ? '<div class="a0-alert a0-alert-success" role="status">Email has been resent.</div>' : '') +
+      '<button class="a0-btn a0-btn-outline" type="button" data-act="resend">Resend email</button><p class="a0-alt"><button class="a0-link" type="button" data-act="to-login">Back to ' + appName() + '</button></p>', ' a0-result');
+  };
+  // App screen (not Auth0) where the invite link lands: collects name, mobile and consent before Auth0.
+  V.inviteDetails = function () {
+    var v = S.inv || {}, e = S.invErr || {};
+    function bad(id) { return e[id.replace('inv-', '')] || (id === 'inv-mobile' && e.taken); }
+    function err(id, msg) { return bad(id) ? '<p class="err" id="' + id + '-err">' + msg + '</p>' : ''; }
+    function aria(id) { return bad(id) ? ' aria-invalid="true" aria-describedby="' + id + '-err"' : ''; }
+    var taken = e.taken ? '<div class="notice" role="alert"><svg aria-hidden="true"><use href="#i-warn"/></svg><div><strong>You already have a Quillmont account</strong>' + esc(fmtPhone(digits(v.mobile))) + ' is already on another Quillmont account. Each mobile number can only be on one account, and this invitation is for your work email, so use a different number to finish joining or <button class="btn-link" type="button" data-act="support">contact support</button>.</div></div>' : '';
+    return '<main><section class="invite-card"><div><h1>Finish creating your account</h1><p class="lede">You accepted the invitation to join Maple &amp; Main Goods on Quillmont Business. Add a few details to get started.</p></div>' + taken +
+      '<form class="invite-form" data-form="inviteDetails" novalidate>' +
+      '<div class="field"><label for="inv-email">Email address</label><input class="input" id="inv-email" type="email" value="' + esc(WORK) + '" readonly aria-describedby="inv-email-h"><span class="hint" id="inv-email-h">You were invited at this address, so it can’t be changed.</span></div>' +
+      '<div class="grid2">' +
+        '<div class="field' + (e.first ? ' is-invalid' : '') + '"><label for="inv-first">First name</label><input class="input" id="inv-first" type="text" autocomplete="given-name" maxlength="50" value="' + esc(v.first || '') + '"' + aria('inv-first') + '>' + err('inv-first', 'Enter your first name.') + '</div>' +
+        '<div class="field' + (e.last ? ' is-invalid' : '') + '"><label for="inv-last">Last name</label><input class="input" id="inv-last" type="text" autocomplete="family-name" maxlength="50" value="' + esc(v.last || '') + '"' + aria('inv-last') + '>' + err('inv-last', 'Enter your last name.') + '</div>' +
+        '<div class="field span2"><label for="inv-middle">Middle name <span class="optional">(optional)</span></label><input class="input" id="inv-middle" type="text" autocomplete="additional-name" maxlength="50" value="' + esc(v.middle || '') + '"></div>' +
+        '<div class="field span2' + (e.mobile || e.taken ? ' is-invalid' : '') + '"><label for="inv-mobile">Mobile number</label><div class="phone-group"><select aria-label="Country code"><option>🇺🇸 +1</option><option>🇨🇦 +1</option></select><input class="input" id="inv-mobile" type="tel" inputmode="tel" autocomplete="tel-national" value="' + esc(v.mobile || '') + '"' + aria('inv-mobile') + '></div>' +
+          (e.mobile ? err('inv-mobile', 'Enter a 10-digit mobile number.') : e.taken ? '<p class="err" id="inv-mobile-err">This number is already on another Quillmont account.</p>' : '') + '</div>' +
+      '</div>' +
+      '<div class="checks"><div><label class="check' + (e.terms ? ' is-invalid' : '') + '"><input type="checkbox" id="inv-terms"' + (v.terms ? ' checked' : '') + aria('inv-terms') + '><span><strong>By checking this box, you are accepting the terms and conditions of the <a href="#" data-act="noop">Participant Agreement</a>.</strong></span></label>' + err('inv-terms', 'Accept the Participant Agreement to continue.') + '</div>' +
+        '<label class="check"><input type="checkbox" id="inv-marketing"' + (v.marketing ? ' checked' : '') + '><span><strong>Yes, I consent to receive news, updates or promotions from Quillmont.</strong> I understand that I can unsubscribe at any time. Please refer to our <a href="#" data-act="noop">Privacy Policy</a> for more details.</span></label></div>' +
+      '<div><button class="btn btn-primary" type="submit">Continue</button></div></form></section></main>';
+  };
+  // Auth0 accept-invitation, with the same text as the JM prototype
+  V.acceptInvite = function () {
+    return card('<h1 class="a0-title">Welcome to ' + appName() + '</h1><p class="a0-desc">Finish securing your account or log in to join Maple &amp; Main Goods on ' + appName() + '.</p>' +
+      '<form class="a0-form" data-form="acceptInvite" novalidate><div class="a0-actions"><button class="a0-btn a0-btn-primary" type="submit">Continue</button></div></form>');
+  };
+  V.support = function () {
+    return card('<h1 class="a0-title">Contact support</h1><p class="a0-desc">Our team replies within 1 to 2 business days.</p><div class="a0-form"><div class="a0-value"><span class="a0-value-text">(555) 555-0100</span></div><div class="a0-value"><span class="a0-value-text">help@quillmont.example</span></div></div>' +
+      '<p class="a0-alt"><button class="a0-link" type="button" data-act="back-support">Go back</button></p>');
+  };
+  V.invite = function () {
+    return '<main><div class="inbox"><div class="inbox-head"><span>Inbox · ' + esc(WORK) + '</span><span>Today, 9:14 AM</span></div><div class="mail">' +
+      '<div class="from">From: Priya at Maple &amp; Main Goods (via Quillmont Business)</div><h2>Priya invited you to join Maple &amp; Main Goods</h2>' +
+      '<p>Hi Jane, I’ve added you to our Quillmont Business account so you can buy shipping labels for the shop.</p>' +
+      '<div><button class="btn btn-primary" data-act="accept">Accept invite</button></div><p class="small">This invite was sent to ' + esc(WORK) + '.</p></div></div></main>';
+  };
+  V.home = function () {
+    var c = S.current;
+    if (S.app === 'protect') {
+      return '<main><div class="page"><h1>Your coverage</h1>' +
+        '<div class="panel empty"><svg aria-hidden="true"><use href="#i-laptop"/></svg><h2>Nothing covered yet</h2><p class="small">Add your laptop, phone or another item to see your price.</p><div><button class="btn btn-primary" data-act="noop">Add an item</button></div></div>' +
+        '<div class="panel"><div class="panel-head"><h2>Account</h2><button class="btn btn-secondary btn-sm" data-act="settings">Edit account info</button></div><div class="rows"><div class="row"><span class="k">Email<small>Where policy updates go</small></span><span class="v">' + esc(c.email || 'Not added') + '</span></div>' +
+        '<div class="row"><span class="k">Mobile number</span><span class="v">' + (c.phone ? esc(fmtPhone(c.phone)) : 'Not added') + '</span></div></div></div></div></main>';
+    }
+    if (c.org) {
+      return '<main><div class="page"><h1>Maple &amp; Main Goods</h1><div class="tiles"><div class="tile"><b>Buy a shipping label</b><span>Save on USPS, UPS and FedEx</span></div><div class="tile"><b>Orders</b><span>3 waiting to ship</span></div><div class="tile"><b>Team</b><span>4 people</span></div></div>' +
+        '<div class="panel"><div class="panel-head"><h2>Your account</h2><button class="btn btn-secondary btn-sm" data-act="settings">Edit account info</button></div><div class="rows"><div class="row"><span class="k">Email</span><span class="v">' + esc(c.email || 'Not added') + '</span></div><div class="row"><span class="k">Mobile number</span><span class="v">' + (c.phone ? esc(fmtPhone(c.phone)) : 'Not added') + '</span></div></div></div></div></main>';
+    }
+    return '<main><div class="page"><h1>Welcome to Quillmont Business</h1><div class="panel empty"><svg aria-hidden="true"><use href="#i-store"/></svg><h2>You don’t belong to any business yet</h2><p class="small">Ask your business to invite you, or set up your own.</p>' +
+      '<div class="stack" style="max-width:320px;margin:0 auto;width:100%"><button class="btn btn-primary" data-act="request">Request access to a business</button><button class="btn btn-secondary" data-act="noop">Set up a new business</button></div></div>' +
+      '<div class="panel"><div class="panel-head"><h2>Your account</h2><button class="btn btn-secondary btn-sm" data-act="settings">Edit account info</button></div><div class="rows"><div class="row"><span class="k">Email</span><span class="v">' + esc(c.email || 'Not added') + '</span></div><div class="row"><span class="k">Mobile number</span><span class="v">' + (c.phone ? esc(fmtPhone(c.phone)) : 'Not added') + '</span></div></div></div></div></main>';
+  };
+  V.requested = function () {
+    return '<main><div class="page"><h1>Request sent</h1><div class="panel"><p style="margin:0">We sent your request to Maple &amp; Main Goods. They’ll see it came from <b>' + esc(loginOf(S.current)) + '</b>.</p><div><button class="btn btn-secondary" data-act="home">Back</button></div></div></div></main>';
+  };
+  V.settings = function () {
+    var c = S.current, msg = S.settingsMsg, need = !c.phone ? 'phone' : (!c.email ? 'email' : '');
+    function row(k, v) { return '<div class="row"><span class="k">' + k + '</span><span class="v">' + esc(v) + '</span></div>'; }
+    var rows = (c.email ? row('Email', c.email) : '') + (c.phone ? row('Mobile number', fmtPhone(c.phone)) : '');
+    var isPhone = need === 'phone', word = isPhone ? 'phone number' : 'email address';
+    var add = !need ? '' :
+      '<form class="stack" data-form="settingsadd" novalidate><div class="field"><label for="other">' + (isPhone ? 'Mobile number' : 'Email') + '</label><span class="hint" id="h1">' + (isPhone ? 'We’ll text you about your account.' : 'We’ll send account updates here.') + '</span><input class="input" id="other" type="' + (isPhone ? 'tel' : 'email') + '" autocomplete="' + (isPhone ? 'tel' : 'email') + '" value="' + esc(S.settingsDraft || '') + '" aria-describedby="h1' + (msg ? ' e1" aria-invalid="true' : '') + '">' +
+      (msg === 'taken' ? '<div class="notice" id="e1" role="alert"><svg aria-hidden="true"><use href="#i-warn"/></svg><div><strong>This ' + word + ' is already on another Quillmont account.</strong>Each ' + word + ' can only be used with one Quillmont account. <button class="btn-link" data-act="support" style="min-height:0;padding:0">Contact support</button></div></div>' : msg === 'invalid' ? '<p class="err" id="e1" role="alert">Enter a valid ' + word + '.</p>' : '') +
+      '</div><div><button class="btn btn-primary" type="submit">Save</button></div></form>';
+    return '<main><div class="page"><h1>Account info</h1><div class="panel"><h2>Contact details</h2>' + (rows ? '<div class="rows">' + rows + '</div>' : '') + add + '</div><div><button class="btn btn-secondary" data-act="home">' + (S.app === 'protect' ? 'Back to coverage' : 'Back') + '</button></div></div></main>';
+  };
+  V.compare = function () {
+    function c(opt, label) {
+      return '<div><div class="opt">' + opt + '</div><section class="a0-card"><div class="a0-logo"><svg role="img" aria-label="Quillmont"><use href="#wordmark"/></svg></div><h1 class="a0-title">Quillmont Protect</h1><p class="a0-desc">Sign up to Quillmont to continue to Quillmont Protect.</p>' +
+        '<div class="a0-form"><div class="a0-field"><input class="a0-input" placeholder=" " tabindex="-1" aria-label="' + label + '" readonly style="background:var(--card)"><span class="a0-label">' + label + '</span></div><div class="a0-actions"><div class="a0-btn a0-btn-primary" aria-hidden="true">Continue</div></div></div></section></div>';
+    }
+    return '<main><div class="compare">' + c('Option 1', 'Phone or email*') + c('Option 2', 'Email address*') + '</div></main>';
+  };
+
+  // ── Render + events ──────────────────────────────────────────────
+  function render() {
+    var view = V[S.screen] || V.index;
+    var chrome = S.screen === 'index' || S.screen === 'compare' || S.screen === 'mail' || AUTH[S.screen] ? '' : topbar();
+    var bannerHtml = '';
+    if (S.screen === 'verify' && S.banner) {
+      bannerHtml = S.otpChannel === 'sms'
+        ? '<div class="banner" role="status"><span class="ico msg" aria-hidden="true">✉</span><span><span class="meta"><span>Messages</span><span>now</span></span><span class="txt"><b>Quillmont</b><br>Your Quillmont code is ' + CODE + '. Don’t share it.</span></span></div>'
+        : '<button type="button" class="banner" data-act="open-mail"><span class="ico mail" aria-hidden="true">@</span><span><span class="meta"><span>Mail</span><span>now</span></span><span class="txt"><b>Quillmont</b><br>Your verification code</span></span></button>';
+    }
+    var inner = chrome + bannerHtml + view() + foot();
+    app.innerHTML = brief() + (S.sc.mobile ? '<div class="device-wrap"><div class="device" aria-label="Phone screen">' + inner + '</div></div>' : inner);
+    var focus = app.querySelector('[aria-invalid="true"]') || (AUTH[S.screen] ? app.querySelector('.a0-input:not([readonly])') : null);
+    if (focus) focus.focus();
+    var pw = document.getElementById('pw');
+    if (pw) pw.addEventListener('input', function () { S.pwDraft = pw.value; var pol = document.getElementById('policy'); if (pol) pol.outerHTML = policyHtml(pw.value); });
+    window.scrollTo(0, 0);
+  }
+  function login(acct) { S.current = acct; S.invite = false; go('home'); }
+  function startVerify(purpose) {
+    S.verifyPurpose = purpose; S.codeValue = ''; S.codeFilled = false; S.banner = false; go('verify');
+    if (!S.sc.mobile) return;
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function () { if (S.screen === 'verify') { var cur = document.getElementById('code'); S.codeValue = cur ? cur.value : S.codeValue; S.banner = true; render(); } }, 1500);
+  }
+  function createAccount() {
+    var a = { phone: S.pending.phone || null, email: S.pending.email || null, mine: true, org: !!S.invite, mfa: S.mfaMethod ? { method: S.mfaMethod, phone: S.mfaMethod === 'sms' ? S.mfaPhone : null } : null };
+    S.accounts.push(a); return login(a);
+  }
+
+  // Continue buttons and Enter are handled directly, never through native form submission,
+  // which sandboxed viewers (like the Claude artifact viewer) can block.
+  app.addEventListener('click', function (e) {
+    var sb = e.target.closest('form button[type=submit]');
+    if (sb) { e.preventDefault(); return onSubmit(sb.closest('form')); }
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act'); e.preventDefault();
+    if (act === 'copy') {
+      var val = b.getAttribute('data-val');
+      var done = function () { b.innerHTML = '<svg aria-hidden="true"><use href="#i-check"/></svg>Copied'; clearTimeout(b._t); b._t = setTimeout(function () { b.innerHTML = '<svg aria-hidden="true"><use href="#i-copy"/></svg>'; }, 1500); };
+      var fallback = function () { var ta = document.createElement('textarea'); ta.value = val; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (err) {} document.body.removeChild(ta); done(); };
+      try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(val).then(done, fallback); else fallback(); } catch (err) { fallback(); }
+      return;
+    }
+    if (act === 'brief') { briefOpen = !briefOpen; return render(); }
+    if (act === 'restart') return reset(S.key);
+    if (act === 'open') { var key = b.getAttribute('data-key'); try { history.replaceState(null, '', '#' + key); } catch (err) {} return reset(key); }
+    if (act === 'index') { try { history.replaceState(null, '', location.pathname + location.search); } catch (err) {} return reset(null); }
+    if (act === 'to-signup') { S.ident = ''; S.pending = {}; return go('signup'); }
+    if (act === 'to-login') { S.loginIdent = S.loginIdent || S.ident || ''; return go('login'); }
+    if (act === 'forgot') return go('resetRequest');
+    if (act === 'resend') { S.resent = true; return render(); }
+    if (act === 'support') { S.beforeSupport = S.screen; return go('support'); }
+    if (act === 'back-support') return go(S.beforeSupport || 'landing');
+    if (act === 'mfa-pick') { var m = b.getAttribute('data-m'); S.codeValue = ''; S.keyWaiting = false; S.mfaPhoneDraft = null; return go({ sms: 'mfaSms', otp: 'mfaOtp', key: 'mfaKey' }[m]); }
+    if (act === 'mfa-options') { clearTimeout(bannerTimer); S.banner = false; S.keyWaiting = false; return go('mfaOptions'); }
+    if (act === 'key-go') { S.keyWaiting = true; render(); clearTimeout(bannerTimer); bannerTimer = setTimeout(function () { if (S.screen === 'mfaKey') { S.keyWaiting = false; S.mfaMethod = 'key'; go('mfaDone'); } }, 1800); return; }
+    if (act === 'mfa-finish') { saveLastMfa({ method: S.mfaMethod, phone: S.mfaMethod === 'sms' ? S.mfaPhone : null }); return createAccount(); }
+    if (act === 'ch-other') { S.chPicking = true; S.keyWaiting = false; clearTimeout(bannerTimer); return render(); }
+    if (act === 'ch-back') { S.chPicking = false; return render(); }
+    if (act === 'ch-pick') { var cm = b.getAttribute('data-m'); S.challenge = { method: cm, phone: S.challenge.phone || S.match.phone }; S.chPicking = false; S.codeValue = ''; S.fieldErr = ''; return render(); }
+    if (act === 'ch-key') { S.keyWaiting = true; render(); clearTimeout(bannerTimer); bannerTimer = setTimeout(function () { if (S.screen === 'mfaChallenge') { S.keyWaiting = false; login(S.match); } }, 1800); return; }
+    if (act === 'fill-code') { S.codeValue = CODES.sms; S.codeFilled = true; return render(); }
+    if (act === 'open-mail') return go('mail');
+    if (act === 'back-verify') { S.banner = false; S.screen = 'verify'; return render(); }
+    if (act === 'accept') { S.invite = true; S.pending = { email: WORK }; S.inv = {}; S.invErr = {}; return go('inviteDetails'); }
+    if (act === 'settings') { S.settingsMsg = ''; S.settingsDraft = ''; return go('settings'); }
+    if (act === 'home') return go('home');
+    if (act === 'request') return go('requested');
+    if (act === 'toggle-pw') { var inp = document.getElementById(b.getAttribute('data-for')); var show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.textContent = show ? 'Hide' : 'Show'; b.setAttribute('aria-pressed', show ? 'true' : 'false'); return; }
+  });
+
+  // Format phone numbers as (555) 555-0123 while typing: always in phone fields, and in the
+  // combined field whenever what's typed so far looks like a phone number (no letters or @).
+  function formatPhone(v) {
+    var d = String(v).replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); d = d.slice(0, 10);
+    if (!d) return '';
+    if (d.length <= 3) return '(' + d;
+    if (d.length <= 6) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+    return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+  }
+  app.addEventListener('input', function (e) {
+    var t = e.target; if (t.tagName !== 'INPUT') return;
+    var isTel = t.type === 'tel', isCombined = t.id === 'ident';
+    if (!isTel && !(isCombined && /^[\d\s()+.-]*$/.test(t.value) && /\d/.test(t.value))) return;
+    if (e.inputType && e.inputType.indexOf('delete') === 0) return; // let backspace work naturally
+    var f = formatPhone(t.value); if (f !== t.value) t.value = f;
+  });
+  app.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    var t = e.target; if (t.tagName !== 'INPUT') return;
+    var form = t.closest('form'); if (!form) return;
+    e.preventDefault(); onSubmit(form);
+  });
+  app.addEventListener('submit', function (e) { e.preventDefault(); onSubmit(e.target); });
+  function onSubmit(form) {
+    var f = form.getAttribute('data-form');
+    var input = form.querySelector('.a0-input:not([readonly]), .input');
+    var v = input ? input.value : '';
+    S.alert = ''; S.fieldErr = '';
+    if (f === 'signup') {
+      S.ident = v; S.idType = kind(v);
+      if (!S.idType) { S.fieldErr = 'Enter a valid phone number or email.'; return render(); }
+      if (find(S.idType, v)) { S.loginIdent = v.trim(); S.alert = 'You already have a Quillmont account. Log in with it to continue to ' + appName() + '.'; return render(); }
+      S.pending = {}; S.pending[S.idType] = S.idType === 'phone' ? digits(v) : v.trim(); if (S.idType === 'phone') S.pending.phoneRaw = v;
+      S.pwDraft = ''; return go('signupPw');
+    }
+    if (f === 'signupPw') {
+      var pw = document.getElementById('pw').value, pw2 = document.getElementById('pw2').value;
+      S.pwDraft = pw;
+      if (!pwOk(pw)) { S.policyBad = true; return render(); }
+      if (pw !== pw2) { S.fieldErr = 'Passwords do not match.'; return render(); }
+      if (S.invite) return go('mfaOptions'); // the invite link already proved the email
+      S.otpChannel = S.idType === 'phone' ? 'sms' : 'email'; return startVerify('identifier');
+    }
+    if (f === 'verify') {
+      if (v.trim() !== CODE) { S.codeValue = v; S.fieldErr = 'The code you entered is invalid.'; return render(); }
+      if (S.verifyPurpose === 'mfa') { S.mfaMethod = 'sms'; return go('mfaDone'); }
+      return go('mfaOptions');
+    }
+    if (f === 'mfaSms') {
+      S.mfaPhoneDraft = v;
+      if (kind(v) !== 'phone') { S.fieldErr = 'Enter a valid phone number.'; return render(); }
+      S.mfaPhone = digits(v); return startVerify('mfa');
+    }
+    if (f === 'mfaChallenge') {
+      if (v.trim() !== CODE) { S.codeValue = v; S.fieldErr = 'The code you entered is invalid.'; return render(); }
+      return login(S.match);
+    }
+    if (f === 'mfaOtp') {
+      if (v.trim() !== CODE) { S.codeValue = v; S.fieldErr = 'The code you entered is invalid.'; return render(); }
+      S.mfaMethod = 'otp'; return go('mfaDone');
+    }
+    if (f === 'login') {
+      S.loginIdent = v; var t2 = kind(v);
+      if (!t2) { S.fieldErr = 'Enter a valid phone number or email.'; return render(); }
+      S.match = find(t2, v); return go('loginPw');
+    }
+    if (f === 'loginPw') {
+      if (!v) { S.fieldErr = 'Enter your password.'; return render(); }
+      if (!S.match || !S.match.mine) { S.alert = 'Wrong email or password'; return render(); }
+      S.challenge = mfaFor(S.match); S.chPicking = false; S.keyWaiting = false; S.codeValue = '';
+      return go('mfaChallenge');
+    }
+    if (f === 'resetRequest') {
+      if (kind(v) !== 'email') { S.fieldErr = 'Email is not valid.'; return render(); }
+      S.resetEmail = v.trim(); S.resent = false; return go('resetEmail');
+    }
+    if (f === 'acceptInvite') { S.pwDraft = ''; return go('signupPw'); }
+    if (f === 'inviteDetails') {
+      var gv = function (id) { return document.getElementById(id); };
+      var inv = { first: gv('inv-first').value.trim(), last: gv('inv-last').value.trim(), middle: gv('inv-middle').value.trim(), mobile: gv('inv-mobile').value, terms: gv('inv-terms').checked, marketing: gv('inv-marketing').checked };
+      var d = digits(inv.mobile), er = { first: !inv.first, last: !inv.last, mobile: d.length !== 10, terms: !inv.terms };
+      S.inv = inv;
+      if (er.first || er.last || er.mobile || er.terms) { S.invErr = er; return render(); }
+      var owner = find('phone', d);
+      if (owner) { S.invErr = { taken: true }; return render(); }
+      S.invErr = {}; S.pending.phone = d; return go('acceptInvite');
+    }
+    if (f === 'settingsadd') {
+      var need = !S.current.phone ? 'phone' : 'email';
+      S.settingsDraft = v;
+      if (kind(v) !== need) { S.settingsMsg = 'invalid'; return render(); }
+      var taken = find(need, v);
+      if (taken && taken !== S.current) { S.settingsMsg = 'taken'; return render(); }
+      if (need === 'phone') S.current.phone = digits(v); else S.current.email = v.trim();
+      S.settingsMsg = ''; S.settingsDraft = ''; return render();
+    }
+  }
+
+  function fromHash() { var k = (location.hash || '').slice(1); reset(SCENARIOS[k] ? k : null); }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>
