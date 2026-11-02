@@ -2,7 +2,7 @@
   // Must match the Worker's name in Cloudflare (Workers & Pages → your project).
   "name": "user-testing",
   "compatibility_date": "2026-10-01",
-  // Serve everything in /public as a static site. public/index.html is the home page.
+  // Serve the quillmont folder as a static site. quillmont/index.html is the home page.
   "assets": {
     "directory": "./quillmont"
   }
